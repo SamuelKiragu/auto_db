@@ -12,39 +12,37 @@ def main():
     # creating the parser
     parser = argparse.ArgumentParser(description='Read the database variables')
 
-    # path of the csvfile
-    parser.add_argument('--dfile', help="path of the flat file")
 
-    # location of the database
-    parser.add_argument('--db_loc', help="database location")
-
-    # table name
-    parser.add_argument('--tbl_name', help="table name")
-
-    # columns
-    parser.add_argument('--cols', help="columns")
-
+    # path of the config file
+    parser.add_argument('--config', help="specify the configuration file")
 
     args = parser.parse_args()
 
 
-    if not(args.dfile == None) and not(args.db_loc == None) and not(args.tbl_name == None) and not(args.cols == None):
+    if not(args.config == None):
 
-
-        # splitting the colums passed via the command line
-        colArr = args.cols.split(',')
-
-        # connecting to the database
-        try:
-            # create database engine
-            db =  create_engine(args.db_loc)
-        except:
-            print(ERROR_TEXT + "DATABASE DOES NOT EXIST")
-
+    # reading the configuration file
+        with open(args.config, newline='') as csvfile:
+            file = csv.reader(csvfile, delimiter=">",quotechar='|')
+            for row in file:
+                if row[0] == "database_url":
+                    # connecting to the database
+                    try:
+                        # create database engine
+                        db =  create_engine(row[1])
+                    except:
+                        print(ERROR_TEXT + "DATABASE DOES NOT EXIST")
+                elif row[0] == "columns":
+                    # splitting the colums passed via the command line
+                    colArr = row[1].split(',')
+                elif row[0] == "table":
+                    table_name = row[1]
+                elif row[0] == "csv":
+                    csv_path = row[1]
 
         try:
             # read the csv file
-            with open(args.dfile, newline='') as csvfile:
+            with open(csv_path, newline='') as csvfile:
                 spamreader = csv.reader(csvfile, delimiter=',', quotechar='|')
                 for row in spamreader:
 
@@ -52,10 +50,10 @@ def main():
                     queryVal = col(row, True)
 
                     query = f"""
-                    INSERT INTO {args.tbl_name}({queryCol})
+                    INSERT INTO {table_name}({queryCol})
                     VALUES({queryVal})
                     """
-                    
+
                     try:
                         db.execute(text(query))
                         print(SUCCESS_TEXT + "Inserted row")
